@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok Token Exchange</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 { color: #1a1a2e; margin-bottom: 20px; }
+        .step { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .step h3 { color: #16213e; margin-bottom: 10px; }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        textarea { height: 100px; resize: vertical; }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover { transform: scale(1.02); }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .result {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        .result.error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .result pre {
+            background: #fff;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .copy-btn {
+            background: #28a745;
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+            margin-top: 10px;
+        }
+        .info { color: #666; font-size: 14px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎌 TikTok Token Exchange</h1>
+        
+        <div class="step">
+            <h3>Step 1: Get Authorization Code</h3>
+            <p class="info">Click the button below to authorize with TikTok:</p>
+            <button onclick="authorize()">🔐 Authorize with TikTok</button>
+        </div>
+
+        <div class="step">
+            <h3>Step 2: Paste Your Authorization Code</h3>
+            <p class="info">After authorizing, paste the code you received:</p>
+            <input type="text" id="authCode" placeholder="Paste your authorization code here...">
+        </div>
+
+        <div class="step">
+            <h3>Step 3: Exchange for Access Token</h3>
+            <button onclick="exchangeToken()" id="exchangeBtn">🔄 Exchange Code for Token</button>
+        </div>
+
+        <div class="result" id="result">
+            <h3>✅ Token Response:</h3>
+            <pre id="tokenData"></pre>
+            <button class="copy-btn" onclick="copyResult()">📋 Copy to Clipboard</button>
+            <p class="info" style="margin-top: 15px;"><strong>Send this entire response to Claude!</strong></p>
+        </div>
+    </div>
+
+    <script>
+        const CLIENT_KEY = 'sbawj3b2xfsaclfx9m';
+        const CLIENT_SECRET = '1m0KcnHL7oX7Ta1AiXZoMT2gmRWc8e9O';
+        const REDIRECT_URI = 'https://plnderer.github.io/MisfitShorts-App/callback.html';
+
+        function authorize() {
+            const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${CLIENT_KEY}&scope=user.info.basic,video.upload,video.publish&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=animevibe123`;
+            window.open(authUrl, '_blank');
+        }
+
+        async function exchangeToken() {
+            const code = document.getElementById('authCode').value.trim();
+            if (!code) {
+                alert('Please paste your authorization code first!');
+                return;
+            }
+
+            const btn = document.getElementById('exchangeBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Exchanging...';
+
+            try {
+                // Try direct fetch first
+                const response = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        client_key: CLIENT_KEY,
+                        client_secret: CLIENT_SECRET,
+                        code: code,
+                        grant_type: 'authorization_code',
+                        redirect_uri: REDIRECT_URI
+                    })
+                });
+
+                const data = await response.json();
+                showResult(data, !data.access_token);
+            } catch (error) {
+                // If CORS blocks it, show manual instructions
+                showManualInstructions(code);
+            }
+
+            btn.disabled = false;
+            btn.textContent = '🔄 Exchange Code for Token';
+        }
+
+        function showResult(data, isError = false) {
+            const resultDiv = document.getElementById('result');
+            const tokenData = document.getElementById('tokenData');
+            
+            resultDiv.style.display = 'block';
+            resultDiv.className = isError ? 'result error' : 'result';
+            tokenData.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function showManualInstructions(code) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result error';
+            resultDiv.innerHTML = `
+                <h3>⚠️ CORS Blocked - Use this cURL command instead:</h3>
+                <p class="info">Open Terminal/Command Prompt and run:</p>
+                <pre style="white-space: pre-wrap; word-break: break-all;">curl -X POST 'https://open.tiktokapis.com/v2/oauth/token/' \\
+-H 'Content-Type: application/x-www-form-urlencoded' \\
+-d 'client_key=${CLIENT_KEY}' \\
+-d 'client_secret=${CLIENT_SECRET}' \\
+-d 'code=${code}' \\
+-d 'grant_type=authorization_code' \\
+-d 'redirect_uri=${encodeURIComponent(REDIRECT_URI)}'</pre>
+                <button class="copy-btn" onclick="copyCurl('${code}')">📋 Copy cURL Command</button>
+            `;
+        }
+
+        function copyResult() {
+            const text = document.getElementById('tokenData').textContent;
+            navigator.clipboard.writeText(text);
+            alert('Copied!');
+        }
+
+        function copyCurl(code) {
+            const curl = `curl -X POST 'https://open.tiktokapis.com/v2/oauth/token/' -H 'Content-Type: application/x-www-form-urlencoded' -d 'client_key=${CLIENT_KEY}' -d 'client_secret=${CLIENT_SECRET}' -d 'code=${code}' -d 'grant_type=authorization_code' -d 'redirect_uri=${encodeURIComponent(REDIRECT_URI)}'`;
+            navigator.clipboard.writeText(curl);
+            alert('cURL command copied!');
+        }
+
+        // Check if there's a code in the URL (coming from callback)
+        const urlParams = new URLSearchParams(window.location.search);
+        const codeFromUrl = urlParams.get('code');
+        if (codeFromUrl) {
+            document.getElementById('authCode').value = codeFromUrl;
+        }
+    </script>
+</body>
+</html>
