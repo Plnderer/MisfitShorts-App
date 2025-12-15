@@ -1,216 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Token Exchange - MisfitShorts</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            min-height: 100vh;
-            padding: 40px 20px;
-        }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-            background: #fff;
-            border-radius: 16px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        h1 { color: #1a1a2e; margin-bottom: 20px; text-align: center; }
-        .step {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid #667eea;
-        }
-        .step h3 { color: #16213e; margin-bottom: 10px; }
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: monospace;
-            margin: 10px 0;
-        }
-        textarea { height: 120px; resize: vertical; }
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
-        button:hover { transform: scale(1.02); }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .result {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-            display: none;
-        }
-        .result.error { background: #f8d7da; border-color: #f5c6cb; }
-        .result pre {
-            background: #fff;
-            padding: 15px;
-            border-radius: 4px;
-            overflow-x: auto;
-            font-size: 12px;
-            white-space: pre-wrap;
-            word-break: break-all;
-        }
-        .copy-btn {
-            background: #28a745;
-            padding: 10px 20px;
-            font-size: 14px;
-            width: auto;
-            margin-top: 10px;
-        }
-        .info { color: #666; font-size: 14px; margin: 10px 0; }
-        .curl-box {
-            background: #2d2d2d;
-            color: #f8f8f2;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-break: break-all;
-            margin: 10px 0;
-        }
-    </style>
+    <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
+
 <body>
     <div class="container">
-        <h1>🎌 MisfitShorts Token Exchange</h1>
+        <h1>🎌 Token Exchange</h1>
+        <p class="tagline">Securely generate your TikTok Access Token</p>
 
-        <div class="step">
-            <h3>Step 1: Get Authorization Code</h3>
-            <p class="info">Click below to authorize with TikTok:</p>
-            <button onclick="authorize()">🔐 Authorize with TikTok</button>
+        <div class="card">
+            <h3>🔐 Client Configuration</h3>
+            <p class="info">Your Client Secret is saved locally in your browser for convenience.</p>
+
+            <div class="form-group">
+                <label for="clientSecret">Client Secret</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="password" id="clientSecret" placeholder="Paste your TikTok Client Secret here">
+                    <button id="toggleSecret" class="btn btn-secondary"
+                        style="width: auto; padding: 10px 15px;">👁️</button>
+                </div>
+            </div>
         </div>
 
-        <div class="step">
-            <h3>Step 2: Paste Authorization Code</h3>
-            <p class="info">After authorizing, paste the code here:</p>
-            <input type="text" id="authCode" placeholder="Paste your authorization code here...">
+        <div class="card">
+            <h3>Step 1: Authorization</h3>
+            <p class="info">Click to log in with TikTok and get your code.</p>
+            <button onclick="authorize()" class="btn">🚀 Authorize with TikTok</button>
         </div>
 
-        <div class="step">
-            <h3>Step 3: Get Access Token</h3>
-            <p class="info">Choose one method:</p>
-            <button onclick="exchangeToken()" id="exchangeBtn">🔄 Exchange Code (Browser)</button>
-            <button onclick="showCurl()" style="background: #343a40; margin-top: 10px;">📋 Get cURL Command (Terminal)</button>
+        <div class="card">
+            <h3>Step 2: Exchange Token</h3>
+            <div class="form-group">
+                <label for="authCode">Authorization Code</label>
+                <input type="text" id="authCode" placeholder="Paste the code from the callback page...">
+            </div>
+
+            <div class="btn-group">
+                <button onclick="exchangeToken()" id="exchangeBtn" class="btn">🔄 Exchange Code</button>
+                <button onclick="showCurl()" class="btn btn-secondary">💻 Get cURL</button>
+            </div>
         </div>
 
-        <div class="result" id="result"></div>
+        <div id="result" style="display: none; margin-top: 30px; text-align: left;">
+            <!-- Result injected here -->
+        </div>
+
+        <div style="margin-top: 30px;">
+            <a href="index.html" style="color: var(--primary); text-decoration: none;">&larr; Back to Home</a>
+        </div>
     </div>
 
-    <script>
-        const CLIENT_KEY = 'sbawj3b2xfsaclfx9m';
-        const CLIENT_SECRET = '1m0KcnHL7oX7Ta1AiXZoMT2gmRWc8e9O';
-        const REDIRECT_URI = 'https://plnderer.github.io/MisfitShorts-App/callback.html';
-
-        // Auto-fill code from URL if present
-        const urlParams = new URLSearchParams(window.location.search);
-        const codeFromUrl = urlParams.get('code');
-        if (codeFromUrl) {
-            document.getElementById('authCode').value = codeFromUrl;
-        }
-
-        function authorize() {
-            const authUrl = `https://www.tiktok.com/v2/auth/authorize/?client_key=${CLIENT_KEY}&scope=user.info.basic,video.upload,video.publish&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=misfitshorts123`;
-            window.open(authUrl, '_blank');
-        }
-
-        async function exchangeToken() {
-            const code = document.getElementById('authCode').value.trim();
-            if (!code) { alert('Please paste your authorization code first!'); return; }
-
-            const btn = document.getElementById('exchangeBtn');
-            btn.disabled = true;
-            btn.textContent = '⏳ Exchanging...';
-
-            try {
-                const response = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        client_key: CLIENT_KEY,
-                        client_secret: CLIENT_SECRET,
-                        code: code,
-                        grant_type: 'authorization_code',
-                        redirect_uri: REDIRECT_URI
-                    })
-                });
-                const data = await response.json();
-                showResult(data, !data.access_token);
-            } catch (error) {
-                showResult({ error: 'CORS_BLOCKED', message: 'Browser blocked the request. Use the cURL command instead.' }, true);
-            }
-
-            btn.disabled = false;
-            btn.textContent = '🔄 Exchange Code (Browser)';
-        }
-
-        function showCurl() {
-            const code = document.getElementById('authCode').value.trim();
-            if (!code) { alert('Please paste your authorization code first!'); return; }
-
-            const curl = `curl -X POST 'https://open.tiktokapis.com/v2/oauth/token/' \\
-  -H 'Content-Type: application/x-www-form-urlencoded' \\
-  -d 'client_key=${CLIENT_KEY}' \\
-  -d 'client_secret=${CLIENT_SECRET}' \\
-  -d 'code=${code}' \\
-  -d 'grant_type=authorization_code' \\
-  -d 'redirect_uri=${REDIRECT_URI}'`;
-
-            const resultDiv = document.getElementById('result');
-            resultDiv.style.display = 'block';
-            resultDiv.className = 'result';
-            resultDiv.innerHTML = `
-                <h3>📋 Run this in Terminal:</h3>
-                <div class="curl-box">${curl}</div>
-                <button class="copy-btn" onclick="copyCurl()">📋 Copy cURL Command</button>
-                <p class="info" style="margin-top: 15px;"><strong>Paste the JSON response to Claude!</strong></p>
-            `;
-
-            window.curlCommand = curl;
-        }
-
-        function showResult(data, isError = false) {
-            const resultDiv = document.getElementById('result');
-            resultDiv.style.display = 'block';
-            resultDiv.className = isError ? 'result error' : 'result';
-            resultDiv.innerHTML = `
-                <h3>${isError ? '❌ Error' : '✅ Success!'}</h3>
-                <pre id="tokenData">${JSON.stringify(data, null, 2)}</pre>
-                <button class="copy-btn" onclick="copyResult()">📋 Copy Response</button>
-                <p class="info" style="margin-top: 15px;"><strong>Send this entire response to Claude!</strong></p>
-            `;
-        }
-
-        function copyResult() {
-            navigator.clipboard.writeText(document.getElementById('tokenData').textContent);
-            alert('Copied!');
-        }
-
-        function copyCurl() {
-            navigator.clipboard.writeText(window.curlCommand);
-            alert('cURL command copied!');
-        }
-    </script>
+    <script src="assets/js/token.js"></script>
 </body>
+
 </html>
